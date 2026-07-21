@@ -46,9 +46,23 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     { className, variant, size, loading, asChild = false, children, disabled, ...props },
     ref
   ) => {
-    const Comp = asChild ? Slot : "button";
+    // `asChild` (Radix Slot) requires exactly one React element child — injecting the loading
+    // spinner as a sibling of `children` breaks Slot's child-counting even when `loading` is
+    // falsy (the `false` node still counts as a second child), so skip it entirely in that mode.
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled || loading}
@@ -56,7 +70,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         {children}
-      </Comp>
+      </button>
     );
   }
 );

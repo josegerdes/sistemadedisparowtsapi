@@ -1,5 +1,5 @@
 import { Db, ObjectId } from "mongodb";
-import makeWASocket, { Browsers, DisconnectReason, WASocket } from "@whiskeysockets/baileys";
+import makeWASocket, { Browsers, DisconnectReason, fetchLatestBaileysVersion, WASocket } from "@whiskeysockets/baileys";
 import QRCode from "qrcode";
 import { Boom } from "@hapi/boom";
 
@@ -39,14 +39,34 @@ function extractText(message: unknown): string | null {
   return msg?.conversation ?? msg?.extendedTextMessage?.text ?? null;
 }
 
+let cachedVersion: [number, number, number] | null = null;
+
+/** Baileys embute uma versão fixa do protocolo do WhatsApp Web no pacote publicado — se ela
+ *  ficar desatualizada (a Meta atualiza o protocolo periodicamente), o handshake é aceito
+ *  ("connected to WA") mas a conexão é derrubada logo em seguida ("Connection Failure" no
+ *  noise-handler), sem nunca chegar a gerar QR Code. Buscar a versão mais recente evita isso. */
+async function getBaileysVersion(): Promise<[number, number, number]> {
+  if (cachedVersion) return cachedVersion;
+  try {
+    const { version } = await fetchLatestBaileysVersion();
+    cachedVersion = version as [number, number, number];
+  } catch (error) {
+    console.error("[baileys] falha ao buscar a versão mais recente do protocolo, usando a padrão do pacote", error);
+    cachedVersion = [2, 3000, 1023223821];
+  }
+  return cachedVersion;
+}
+
 export async function connectAccount(db: Db, accountId: string): Promise<void> {
   const existing = cache.sockets.get(accountId);
   if (existing) return;
 
   const { state, saveCreds } = await getMongoAuthState(db, accountId);
+  const version = await getBaileysVersion();
 
   const socket = makeWASocket({
     auth: state,
+    version,
     browser: Browsers.ubuntu("Disparo WhatsApp"),
     printQRInTerminal: false,
   });

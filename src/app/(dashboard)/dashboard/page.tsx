@@ -84,7 +84,7 @@ export default function DashboardPage() {
             { label: "Falhas", value: data?.messages.failed },
           ].map((item) => (
             <div key={item.label}>
-              <p className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : (item.value ?? 0)}</p>
+              <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : (item.value ?? 0)}</div>
               <p className="text-xs text-muted-foreground">{item.label}</p>
             </div>
           ))}

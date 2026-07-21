@@ -26,8 +26,12 @@ export function updateList(db: Db, id: string, patch: Partial<ContactListDoc>) {
     );
 }
 
-export function deleteList(db: Db, id: string) {
-  return collections.contactLists(db).deleteOne({ _id: ObjectId.createFromHexString(id) });
+export async function deleteList(db: Db, id: string) {
+  const listId = ObjectId.createFromHexString(id);
+  // Sem isso, contatos que só pertenciam a esta lista ficavam com uma referência pendurada
+  // em `listIds` pra um documento que não existe mais.
+  await collections.contacts(db).updateMany({ listIds: listId }, { $pull: { listIds: listId } });
+  return collections.contactLists(db).deleteOne({ _id: listId });
 }
 
 export function setContactCount(db: Db, id: ObjectId, count: number) {
