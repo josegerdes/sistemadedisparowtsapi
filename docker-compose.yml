@@ -1,0 +1,36 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?defina MONGO_ROOT_PASSWORD no .env}
+
+  app:
+    build:
+      context: .
+      args:
+        PORT: ${PORT:-3000}
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    environment:
+      PORT: ${PORT:-3000}
+      DATABASE_URL: mongodb://${MONGO_ROOT_USER:-root}:${MONGO_ROOT_PASSWORD}@mongo:27017/?authSource=admin
+      DB: ${DB:-disparo_whatsapp}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      APP_SECRET: ${APP_SECRET:?defina APP_SECRET no .env}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@disparo.local}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      META_APP_ID: ${META_APP_ID:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_WEBHOOK_VERIFY_TOKEN: ${META_WEBHOOK_VERIFY_TOKEN:-}
+      META_GRAPH_API_VERSION: ${META_GRAPH_API_VERSION:-v21.0}
+      BAILEYS_RECONNECT_MAX_BACKOFF_MS: ${BAILEYS_RECONNECT_MAX_BACKOFF_MS:-60000}
+
+volumes:
+  mongo-data:
